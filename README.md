@@ -25,17 +25,26 @@ $./osm2world.sh --input planet_ZGZ-1.023,41.598_-0.801,41.698.osm --output plane
 ```
     - If you choose a 45 angle (looks "more 3D"), then your tiles will have 2 to 1 aspect ratio,
     so the aspect ratio of your final image will have to be 2 * num_of_horizontal_tiles / num_of_vertical_tiles. An angle of 30 allows to have 1 to 1 aspect ratio, what may prove itself useful when integrating other layers for instance, but it looks "less 3D".
-    - By default the view is from the South. You can change it adding the parameter `--oview.from` and choosing N,S,E or W.
+    - By default the view is from the South. You can change it adding the parameter --oview.from and choosing N,S,E or W.
     - This program gives lots of exceptions, and many times it just fails. I think it is because when you extract data for a given bounding box, some geometries are "broken" and they cause problems. There are a number of parameters of the osm2world application that could help with this. For now, I have tried downloading different, very similar, bounding boxes until I have found one that works.
 
 1. To know which tiles correspond to your area of interest, you can go to <http://oms.wff.ch/calc.php?baseurl=cylce&lat=41.698&long=-1.023&longto=-0.801&latto=41.598>. A little warning: do not fill in the two pairs of coordinates corresponding to your bounding box. Put one corner, write down the tiles and then put the other corner and write down the tiles.
     - If you prefer so, you have programs in many programming languages which make the calculation <http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames>.
 
-1. Use POV-Ray to render the image. In level 15 for the area chosen for Zaragoza there are 22x14 tiles. If the aspect ratio is 2/1 (45 degrees) then we need to render an image of 22*256=5632 pixels wide and 14*128=1792 pixels height: `$povray +W5632 +H1792 +B100 -D +A +IplanetZGZ45S_L15 +OZGZ45S_L15.png`
+1. Use POV-Ray to render the image. In level 15 for the area chosen for Zaragoza there are 22x14 tiles. If the aspect ratio is 2/1 (45 degrees) then we need to render an image of 22*256=5632 pixels wide and 14*128=1792 pixels height: 
+```
+$povray +W5632 +H1792 +B100 -D +A +IplanetZGZ45S_L15 +OZGZ45S_L15.png
+```
     - Make sure you have the file osm2world_definitions.inc by your pov file. You can find it in the resources folder for OSM2World. 
     
-1. To tile that image into 256x128 images with a "right" name, you can use image magick: `$convert ZGZ45S_L15.png -crop 256x128 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/128+12200]" +adjoin "15/map_%[filename:tile].png"`
-    - If non-square tiles are a problem (because your map client does not support them, or whatever) you can tile them as squares with image magick: `$convert ZGZ45S_L15.png -crop 256x256 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/256+12200]" +adjoin "15/map_%[filename:tile].png`
+1. To tile that image into 256x128 images with a "right" name, you can use image magick: 
+```
+$convert ZGZ45S_L15.png -crop 256x128 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/128+12200]" +adjoin "15/map_%[filename:tile].png"
+```
+    - If non-square tiles are a problem (because your map client does not support them, or whatever) you can tile them as squares with image magick: 
+```
+$convert ZGZ45S_L15.png -crop 256x256 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/256+12200]" +adjoin "15/map_%[filename:tile].png
+```
     - This works because once you have created the image with the proper aspect ratio in POV-Ray, you can tile it as you please
     
 1. You can create other levels with the same pov file you created before. The level of detail will be fine (the pov file has all the information and detail the OSM map has); you may have a little too much "margin" and you will have to render a large image for the higher levels, but POV-Ray can create pretty large images without big problems. Important: create always the same tiles: if you leave some tiles out, the maps will not zoom properly (you will zoom on one place, the map will show another). For instance, if you start in level 15 with the tile 16290 in horizontal, in level 16 you must start with the tile 32580.
@@ -51,3 +60,5 @@ The map client is based on [Leaflet](http://leafletjs.com/).
 Copyright (c) 2010-2013, Vladimir Agafonkin
 Copyright (c) 2010-2011, CloudMade
 All rights reserved.
+
+Images have been processed with [ImageMagick](http://www.imagemagick.org/script/index.php)
