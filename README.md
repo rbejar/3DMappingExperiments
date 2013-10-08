@@ -19,7 +19,10 @@ Other people have set up other examples with OpenStreetMap and similar approache
 1. Download OSM data for your area of interest. <http://extract.bbbike.org/> allows you to select yours. I have chosen OSM (XML) compressed as gzip. Uncompress once downloaded.
     - PBF seems a better choice for format (smaller download), but I have had some problems with it. 
 
-1. Use [OSM2World](http://osm2world.org/) to transform from OSM to POV-Ray format. We want an ortographic perspective with a 45 degrees angle (isometric view). For instance, for Zaragoza, level 15 of zoom: `$./osm2world.sh --input planet_ZGZ-1.023,41.598_-0.801,41.698.osm --output planetZGZ45S_L15.pov --oview.tiles 15,16290,12200 15,16311,12213 --oview.angle 45`
+1. Use [OSM2World](http://osm2world.org/) to transform from OSM to POV-Ray format. We want an ortographic perspective with a 45 degrees angle (isometric view). For instance, for Zaragoza, level 15 of zoom: 
+```
+$./osm2world.sh --input planet_ZGZ-1.023,41.598_-0.801,41.698.osm --output planetZGZ45S_L15.pov --oview.tiles 15,16290,12200 15,16311,12213 --oview.angle 45
+```
     - If you choose a 45 angle (looks "more 3D"), then your tiles will have 2 to 1 aspect ratio,
     so the aspect ratio of your final image will have to be 2 * num_of_horizontal_tiles / num_of_vertical_tiles. An angle of 30 allows to have 1 to 1 aspect ratio, what may prove itself useful when integrating other layers for instance, but it looks "less 3D".
     - By default the view is from the South. You can change it adding the parameter `--oview.from` and choosing N,S,E or W.
