@@ -10,7 +10,7 @@ This is just a quick-and-dirty test. I have extracted data from [OpenStreetMap](
 - The ground is patchy and it does not look very good. Overlapping the OpenStreetMap on a DEM with a proper texture (e.g. an ortophotography or a nice looking map) would improve the result.
 - I have created only three zoom levels (14,15,16).
 
-You can see the example in <??>.
+You can see it working at <http://rbejar.github.io/3DMappingExperiments/ZGZ-IsometricMap/index.html>.
 
 Other people have set up other examples with OpenStreetMap and similar approaches (with more work, better looking and using different tools). I have taken inspiration and some ideas from them: <http://maps.osm2world.org/> and <http://osm.kyblsoft.cz/3dmapa/info>.
 
