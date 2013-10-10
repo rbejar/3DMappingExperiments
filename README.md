@@ -41,7 +41,8 @@ $povray +W5632 +H1792 +B100 -D +A +IplanetZGZ45S_L15 +OZGZ45S_L15.png
 ```
 $convert ZGZ45S_L15.png -crop 256x128 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/128+12200]" +adjoin "15/map_%[filename:tile].png"
 ```
-    - If non-square tiles are a problem (because your map client does not support them, or whatever) you can tile them as squares with image magick: 
+
+1. If non-square tiles are a problem (because your map client does not support them, or whatever) you can tile them as squares with image magick: 
 ```
 $convert ZGZ45S_L15.png -crop 256x256 -set filename:tile "%[fx:page.x/256+16290]_%[fx:page.y/256+12200]" +adjoin "15/map_%[filename:tile].png
 ```
