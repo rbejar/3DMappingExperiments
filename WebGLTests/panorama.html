@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Panorama in Three.js test</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+
+		<script src="lib/three.min.js"></script>
+		<script src="data3d/pcloud.js"></script>
+
+		<script>
+
+			var camera, scene, renderer;
+
+			var fov = 70,
+			texture_placeholder,
+			isUserInteracting = false,
+			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+			lon = 0, onMouseDownLon = 0,
+			lat = 0, onMouseDownLat = 0,
+			phi = 0, theta = 0;
+
+      var sphere_radius = 500; // Mientras esté dentro de lo que recoge la cámara
+      // (param near y far especialmente) parece que value cualquier radio, como
+      // era de esperar
+      
+      var panorama_position = new THREE.Vector3(7.12, 4.78, 14,7); // POS DEL PANORAMA
+// LA ALTURA DEL PANORAMA VIENE DADA POR EL COCHE: 245,6 m. COMO EL PUNTO MÁS BAJO
+// DE LA NUBE ESTÁ A 240.82 M. (ESE ES MI CERO), LA ALTURA DEL COCHE LA PONGO
+// A 4.78 M.
+      var panorama_rotation = 66.48;
+
+      var panorama5_position = new THREE.Vector3(9.76, 4.58, 8.16);
+      var panorama5_rotation = 68.27;
+
+      var panorama53_position = new THREE.Vector3(70.58, 4.07,-47.21)
+      var panorama53_rotation = -115.54;
+
+      // Cambia esto para probar con otros panoramas
+      var currentPanorama_position = panorama5_position;
+      var currentPanorama_rotation = panorama5_rotation;
+      var currentPanorama_image = 'resources/ascii_panoramas000005_flipped.jpg';
+      var currentPanoramaModel_image = 'resources/pov_panoramas000005.png';
+
+      currentPanorama_position.y += 4; // LO SUBO PARA VER EL SUELO!!
+
+
+
+      // EL PANORAMA 0 ENCAJA BASTANTE PEOR QUE EL 5 Y QUE EL 53. SOSPECHO PROBLEMAS DE PRECISIÓN GPS O
+      // ALGO ASÍ (ES EL PRIMERO DE LA SECUENCIA, ES RAZONABLE...)
+
+			init();
+			
+			var material = new THREE.MeshBasicMaterial( { color: 0x777700, opacity: 0.1, transparent: true} );
+			var sceneObjects = new Array();
+			
+			 // UN CONVEX HULL POR CLUSTER, PARA EL MODELO 3D QUE DARÁ LAS MEDICIONES
+      /* var i = 0;
+       var cluster;
+      
+      for (i = 0; i < cluster_hull_geometries.length; i++) {        
+        // Necesito el clone para que cada cluster tenga su propia geometría o al
+        // cambiar el color (tras click) cambiaría el color de todos
+        cluster = new THREE.Mesh(cluster_hull_geometries[i], material.clone());
+        cluster.receiveShadow = true;
+        cluster.castShadow = true;
+        scene.add(cluster); // EN VERSIÓN FINAL NO LO AÑADO A LA ESCENA, EN REALIDAD NO LO QUIERO PINTAR
+        sceneObjects.push(cluster);
+        console.log("cluster "+i+" added");
+      }*/
+      
+       // UNA CAJA POR CELDA O POR GRUPO DE CELDAS
+       if (typeof(a_cell_per_box) === "undefined") {
+         var a_cell_per_box = true; 
+       }
+       var i = 0;
+       var cellpos;
+       var cell;
+       for (i = 0; i < cell_positions.length; i++) {     
+        var mat = material.clone();
+        mat.visible = false; // FALSE SI SOLO QUIERO EL OBJETI PARA CALCULAR INTERSECCIÓN
+        // TRUE SI QUIERO VERLO. USO ESTO PORQUE SI NO AÑADES UN OBJETO A UNA ESCENA
+        // RAYCASTER NO FUNCIONA PARA LAS INTERSECCIONES
+        cell = new THREE.Mesh(cell_geometry, mat);
+        //cell.receiveShadow = true;
+        //cell.castShadow = true;   
+        cell.position.x =  cell_positions[i].x;
+        cell.position.y =  cell_positions[i].y;
+        cell.position.z =  cell_positions[i].z;        
+        
+        if (!a_cell_per_box) {
+            cell.scale.x = box_sizes[i].x;
+            cell.scale.y = box_sizes[i].y;
+            cell.scale.z = box_sizes[i].z;
+        }
+        scene.add(cell); 
+        sceneObjects.push(cell);
+        //console.log("cell "+i+" added");
+       };
+      
+      // Para la selección de elementos
+      var projector = new THREE.Projector();   
+      // Material para los puntos que indican el punto de selección
+      var particleMaterial =  new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
+			
+			
+			
+			animate();
+
+			function init() {
+
+				var container, mesh;
+				container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+				camera.position = currentPanorama_position;
+				camera.target = new THREE.Vector3(0,0,0); // Da un poco igual cual, creo, pero si que hace falta un target
+
+				scene = new THREE.Scene();
+
+				var geometry = new THREE.SphereGeometry( sphere_radius, 60, 40 );
+				// LA ESCALA NEGATIVA PROVOCA UNA REFLEXIÓN: SIN ELLA EL PANORAMA
+				// NO SE PINTA (AL MENOS "POR DENTRO" DE LA ESFERA)
+				geometry.applyMatrix( new THREE.Matrix4().makeScale( -1, 1, 1 ) );
+				
+				
+
+        var panoTexture = THREE.ImageUtils.loadTexture( currentPanorama_image );
+        // Sin el repeatwrapping, el offset de la textura en lugar de rotarla en la esfera
+        // la desplaza horizontalmente, dejando media esfera mal pintada
+        panoTexture.wrapS = THREE.RepeatWrapping;                        
+        panoTexture.offset.x = (270-currentPanorama_rotation)/360; // ORIENTACIÓN DEL PANORAMA
+        // offset.x debe ser un valor entre 0.0 y 1.0 (pos o neg), por eso divido ángulo
+        // de rotación por 360
+        
+        console.log("PANO OFFSET ", panoTexture.offset.x);  
+				var material = new THREE.MeshBasicMaterial( {
+					map: panoTexture
+				} );
+
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position = currentPanorama_position; 
+				 
+				
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+				document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+      function intersect(clientX, clientY) {
+          var vector = new THREE.Vector3( ( clientX / window.innerWidth ) * 2 - 1, - ( clientY / window.innerHeight ) * 2 + 1, 0.5 );
+        projector.unprojectVector( vector, camera );
+
+        var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+        var intersects = raycaster.intersectObjects( sceneObjects );
+        return intersects;
+
+       }
+
+			function onDocumentMouseDown( event ) {
+
+				event.preventDefault();
+
+				isUserInteracting = true;
+
+				onPointerDownPointerX = event.clientX;
+				onPointerDownPointerY = event.clientY;
+
+				onPointerDownLon = lon;
+				onPointerDownLat = lat;
+				
+				console.log("mouse down");
+				
+        // PARA SELECCIONAR ELEMENTOS POR RAYCASTING
+        var intersects = intersect(event.clientX, event.clientY);
+        if ( intersects.length > 0 ) {
+          console.log("Scene object intersected");
+          intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+          intersects[ 0 ].object.material.visible = true;
+          
+          
+
+          /*var particle = new THREE.Sprite( particleMaterial );
+          particle.position = intersects[ 0 ].point;
+          console.log("PUNTO INTERESECCIÓN: "+intersects[ 0 ].point.x, 
+                       intersects[ 0 ].point.y, intersects[ 0 ].point.z );
+          particle.scale.x = particle.scale.y = 8;
+          scene.add( particle ); // Mostrar punto de intersección*/
+          //scene.remove(intersects[0].object); // Eliminar objeto (no se si funciona bien)
+
+        }
+       
+        
+			}
+
+			function onDocumentMouseMove( event ) {
+
+				if ( isUserInteracting ) {
+
+					lon = ( onPointerDownPointerX - event.clientX ) * 0.1 + onPointerDownLon;
+					lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+
+				} else {
+        // dar pista al usuario de donde mediría si hiciera click
+        /*var intersects = intersect(event.clientX, event.clientY);
+        var intersects2 = intersect(event.clientX+4, event.clientY);
+        var intersects3 = intersect(event.clientX+-4, event.clientY);
+        var intersects4 = intersect(event.clientX, event.clientY+4);
+
+        if ( intersects.length > 0 ) {          
+          //intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+          //intersects[ 0 ].object.material.visible = true;
+          var particle = new THREE.SphereGeometry( 0.4, 20, 12 );
+          var partmaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.8, transparent: true} );          
+          var part_object = new THREE.Mesh(particle, partmaterial);
+          part_object.position = intersects[ 0 ].point;
+          console.log("PUNTO INTERESECCIÓN: "+intersects[ 0 ].point.x, 
+                       intersects[ 0 ].point.y, intersects[ 0 ].point.z );          
+          
+          scene.add( part_object ); // Mostrar punto de intersección
+          //scene.remove(intersects[0].object); // Eliminar objeto (no se si funciona bien)
+
+        }*/
+        
+        }
+			}
+
+			function onDocumentMouseUp( event ) {
+
+				isUserInteracting = false;
+
+			}
+
+			function onDocumentMouseWheel( event ) {
+
+				// WebKit
+
+				if ( event.wheelDeltaY ) {
+
+					fov -= event.wheelDeltaY * 0.05;
+
+				// Opera / Explorer 9
+
+				} else if ( event.wheelDelta ) {
+
+					fov -= event.wheelDelta * 0.05;
+
+				// Firefox
+
+				} else if ( event.detail ) {
+
+					fov += event.detail * 1.0;
+
+				}
+
+				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+				render();
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+
+				lat = Math.max( - 85, Math.min( 85, lat ) );
+				phi = THREE.Math.degToRad( 90 - lat );
+				theta = THREE.Math.degToRad( lon );
+
+				camera.target.x = sphere_radius * Math.sin( phi ) * Math.cos( theta );
+				camera.target.y = sphere_radius * Math.cos( phi );
+				camera.target.z = sphere_radius * Math.sin( phi ) * Math.sin( theta );
+
+				camera.lookAt( camera.target );
+
+				/*
+				// distortion
+				camera.position.x = - camera.target.x;
+				camera.position.y = - camera.target.y;
+				camera.position.z = - camera.target.z;
+				*/
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
