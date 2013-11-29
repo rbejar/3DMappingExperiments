@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="12.2">
+  <zoom_level>11</zoom_level>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>319</x>
+      <y>154</y>
+      <w>143</w>
+      <h>154</h>
+    </coordinates>
+    <panel_attributes>RichPanorama
+--
++position
++rotation</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>737</x>
+      <y>154</y>
+      <w>187</w>
+      <h>154</h>
+    </coordinates>
+    <panel_attributes>RichPanoramaViewer
+--
++camera
++scene
++renderer
++sphere
++texture
++material
++mesh
++container
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>143</x>
+      <y>429</y>
+      <w>165</w>
+      <h>33</h>
+    </coordinates>
+    <panel_attributes>PanoramicImage</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>121</x>
+      <y>275</y>
+      <w>219</w>
+      <h>175</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+m2=1
+r2=panorama</panel_attributes>
+    <additional_attributes>198;33;33;154</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>451</x>
+      <y>429</y>
+      <w>110</w>
+      <h>33</h>
+    </coordinates>
+    <panel_attributes>Objects3D</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>396</x>
+      <y>275</y>
+      <w>131</w>
+      <h>175</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+m2=*</panel_attributes>
+    <additional_attributes>33;33;110;154</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>429</x>
+      <y>253</y>
+      <w>329</w>
+      <h>54</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+m1=*</panel_attributes>
+    <additional_attributes>33;33;308;33</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>264</x>
+      <y>275</y>
+      <w>131</w>
+      <h>175</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+m2=0..1
+r2=modelImage</panel_attributes>
+    <additional_attributes>110;33;33;154</additional_attributes>
+  </element>
+</diagram>

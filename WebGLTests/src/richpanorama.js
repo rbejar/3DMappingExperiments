@@ -1,25 +1,34 @@
 /**
-    RichPanorama.js - Rich Panorama Visualization
+    richpanorama.js - Rich Panorama Visualization
     Copyright (C) 2013 Rubén Béjar {http://www.rubenbejar.com/}
  */
 
-function RichPanoramaModule() {
-  var RichPanorama = {};
+function RichPanorama() {
+    var RP = {};
   
-  function privateFunction() {
-  };
+    function privateFunction() {
+    };
   
-  var privateAttribute = 0;
+    var privateAttribute = 0;
   
   
-  RichPanorama.attribute = 0;
+    RP.position = new THREE.VEctor3(0,0,0);
+    RP.rotation = 0;
+    RP.image = '';
+    RP.modelImage = ''; // Image that "mixes" 3d model and panorama
+    RP.objects3d = new Array();
+    
+    var material = new THREE.MeshBasicMaterial( { color: 0x777700, opacity: 0.1, transparent: true} );
+    
+      
+    
   
-  RichPanorama.aFunction = function() {          
-  };
+    RP.aFunction = function() {          
+    };
 
 
 
-  return RichPanorama;
+    return RP;
 };
 
-var RichPanorama = RichPanoramaModule();
+//var richPanorama = RichPanorama();
