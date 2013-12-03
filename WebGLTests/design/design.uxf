@@ -22,7 +22,7 @@
       <x>876</x>
       <y>72</y>
       <w>204</w>
-      <h>276</h>
+      <h>360</h>
     </coordinates>
     <panel_attributes>RichPanoramaViewer
 --
@@ -35,7 +35,12 @@
 +container
 +objects3DMaterial // para los objetos3d de la RichPanoramaScene
 +currentPanorama
++lon
++lat
 --
++load()
++init()
++attachEventHandlers()
 +animate()
 +render()
 </panel_attributes>

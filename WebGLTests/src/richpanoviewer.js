@@ -34,6 +34,15 @@ function RichPanoViewer() {
     // lon and lat used to determine where are we looking at
     RPV.lon = 0;
     RPV.lat = 0;
+    
+    RPV.dragView = {draggingView: false, mouseDownX: 0, mouseDownY: 0, 
+                    mouseDownLon: 0, mouseDownLat: 0};
+    
+    RPV.load = function() {
+        $(document).ready(function(){
+            RPV.init();
+        });
+    };
   
     RPV.init = function() {
         var i;
@@ -112,7 +121,7 @@ function RichPanoViewer() {
               obj = new THREE.Mesh(geoms[i], RPV.objects3Dmaterial.clone());
               obj.receiveShadow = true;
               obj.castShadow = true;
-              RPV.currentPanoScene.scene.add(obj); // EN VERSIÓN FINAL NO LO AÑADO A LA ESCENA, EN REALIDAD NO LO QUIERO PINTAR
+              //RPV.currentPanoScene.scene.add(obj); // EN VERSIÓN FINAL NO LO AÑADO A LA ESCENA, EN REALIDAD NO LO QUIERO PINTAR
                             
               // Por ahora trabajo con una sola escena por visualizador. En un visualizador
               // realista esto no será así.
@@ -162,13 +171,85 @@ function RichPanoViewer() {
         RPV.renderer.setSize(window.innerWidth, window.innerHeight);
         RPV.container.appendChild(RPV.renderer.domElement);
         
+        RPV.attachEventHandlers();
+        
         RPV.animate();
        
     };
     
     
+    RPV.attachEventHandlers = function() {    
+        // click event does not get right click in Chromium; mousedown gets left
+        // and right clicks properly in both Firefox and Chromium
+      
+        function onMouseWheel(event) {
+            console.log("deltaY "+event.deltaY);
+            console.log("deltafactor "+event.deltaFactor);            
+            // Requieres jQuery Mousewheel plugin
+            // provides: event.deltaX, event.deltaY and event.deltaFactor
+            RPV.cameraParams.fov -= event.deltaY * 2.5;
+            RPV.camera.projectionMatrix.makePerspective( RPV.cameraParams.fov, 
+                window.innerWidth / window.innerHeight, 1, 1100 );
+            RPV.render();
+        };  
+        
+        function onMouseDown(event) {
+            event.preventDefault();           
+            event.stopPropagation();
+                
+            RPV.dragView.draggingView = true;
+
+            RPV.dragView.mouseDownX = event.clientX;
+            RPV.dragView.mouseDownY = event.clientY;                
+
+            RPV.dragView.mouseDownLon = RPV.lon;
+            RPV.dragView.mouseDownLat = RPV.lat;
+                               
+                
+            // PARA SELECCIONAR ELEMENTOS POR RAYCASTING (SIN REVISAR AÚN)
+            /*var intersects = intersect(event.clientX, event.clientY);
+            if ( intersects.length > 0 ) {
+                console.log("Scene object intersected");
+                intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+                intersects[ 0 ].object.material.visible = true;*/
+                    
+
+                /*var particle = new THREE.Sprite( particleMaterial );
+                particle.position = intersects[ 0 ].point;
+                console.log("PUNTO INTERESECCIÓN: "+intersects[ 0 ].point.x, 
+                       intersects[ 0 ].point.y, intersects[ 0 ].point.z );
+                particle.scale.x = particle.scale.y = 8;
+                scene.add( particle ); // Mostrar punto de intersección*/
+                //scene.remove(intersects[0].object); // Eliminar objeto (no se si funciona bien)
+            //}  
+        };
+        
+        function onMouseUp(event) {
+            event.preventDefault();           
+            event.stopPropagation();
+            RPV.dragView.draggingView = false;
+        };
+        
+        function onMouseMove(event) {
+            event.preventDefault();           
+            event.stopPropagation();             
+            
+            if (RPV.dragView.draggingView) {
+                RPV.lon = ( RPV.dragView.mouseDownX  - event.clientX ) * 0.1 + RPV.dragView.mouseDownLon;
+                RPV.lat = ( event.clientY -RPV.dragView.mouseDownY  ) * 0.1 + RPV.dragView.mouseDownLat;
+            }
+        };
+      
+        $(document).mousewheel(onMouseWheel);
+        $(document).mousedown(onMouseDown);
+        $(document).mouseup(onMouseUp);
+        $(document).mousemove(onMouseMove);
+        
+    };
     
     
+    
+ 
     RPV.animate = function() {
         requestAnimationFrame(RPV.animate);
         RPV.render();
