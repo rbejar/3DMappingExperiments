@@ -72,7 +72,7 @@
       for (i = 0; i < cluster_hull_geometries.length; i++) {        
         // Necesito el clone para que cada cluster tenga su propia geometría o al
         // cambiar el color (tras click) cambiaría el color de todos
-        cluster = new THREE.Mesh(cluster_hull_geometries[i], material.clone());
+        cluster = new THREE.Mesh(RPM.geometries[i], material.clone());
         cluster.receiveShadow = true;
         cluster.castShadow = true;
         scene.add(cluster); // EN VERSIÓN FINAL NO LO AÑADO A LA ESCENA, EN REALIDAD NO LO QUIERO PINTAR
@@ -81,8 +81,8 @@
       }*/
       
        // UNA CAJA POR CELDA O POR GRUPO DE CELDAS
-       if (typeof(a_cell_per_box) === "undefined") {
-         var a_cell_per_box = true; 
+       if (typeof(uniformSizeCells) === "undefined") {
+         var uniformSizeCells = true; 
        }
        var i = 0;
        var cellpos;
@@ -99,7 +99,7 @@
         cell.position.y =  cell_positions[i].y;
         cell.position.z =  cell_positions[i].z;        
         
-        if (!a_cell_per_box) {
+        if (!uniformSizeCells) {
             cell.scale.x = box_sizes[i].x;
             cell.scale.y = box_sizes[i].y;
             cell.scale.z = box_sizes[i].z;

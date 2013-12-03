@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Rich Panorama Viewer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+
+		<script src="lib/three.min.js"></script>
+		<script src="data3d/pcloud.js"></script>
+		<script src="src/richpanorama.js"></script>
+		<script src="src/richpanoviewer.js"></script>
+
+		<script>
+        var richPanoViewer = RichPanoViewer();
+        richPanoViewer.init();
+		</script>
+	</body>
+</html>
