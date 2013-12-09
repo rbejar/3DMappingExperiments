@@ -14,7 +14,9 @@ function RichPanorama() {
     RP.MODEL3DTYPES = {MESH: 1, GRID: 2};
   
     RP.position = new THREE.Vector3(0,0,0);
-    RP.rotation = 0;
+    RP.heading = 0; // AKA yaw. Where do I look (north, south,...)
+    RP.pitch = 0; // I look "more up", or "more down"
+    // I have not a roll parameter: I assume I never lean the camera like that...
     RP.image = '';
     RP.modelImage = ''; // Image that "mixes" 3d model and panorama
     

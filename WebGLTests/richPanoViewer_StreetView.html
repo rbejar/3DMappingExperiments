@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Rich Panorama Viewer STREET VIEW</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				/*background-color: #000000;*/
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		
+		
+		
+        <div id="streetviewpano" style="position: absolute; top:0; bottom:0; left:0; right:0; z-index: 0">  
+        <div id="container" style="position: absolute; top:0; bottom:0; left: 0; z-index: 5000;">
+          
+        </div>
+        </div>
+
+		
+		
+		
+		
+		<!-- We do not use a sensor to establish the location of the user: 
+		     must make explicit, important license issue -->
+        <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+        
+        <script src="lib/jquery-2.0.3.js"></script>
+        <script src="lib/jquery.mousewheel.js"></script>
+		<script src="lib/three.min.js"></script>
+		<script src="data3d/pcloud.js"></script>
+		<script src="src/richpanorama.js"></script>
+		<script src="src/richpanoviewer.js"></script>
+
+		<script>
+		
+        var richPanoViewer = RichPanoViewer();
+        //initStreetView();
+        richPanoViewer.load({panorama: false, streetView: true, objects3D: true});
+
+        
+        /*function initStreetView() {
+              //var myControlPano = new google.maps.StreetViewPanorama(document.getElementById("controlPano"));      
+            var myPano = new google.maps.StreetViewPanorama(document.getElementById("streetviewpano"));      
+            var pano5Pos = new google.maps.LatLng(41.66602668,-0.89033847);
+            var myPOV = {heading:68.27, pitch:0, zoom:1}
+            myPano.setPosition(pano5Pos);
+            myPano.setPov(myPOV);    
+        }*/
+		</script>
+	</body>
+</html>
