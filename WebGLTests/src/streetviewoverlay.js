@@ -26,17 +26,27 @@ function StreetViewOverlay() {
     SVO.scene = new THREE.Scene();
     
     SVO.cameraParams = {focalLength: SVO.DEFAULT_FOCAL_LENGTH};
-    SVO.camera = null;    
+    SVO.camera = new THREE.PerspectiveCamera( 
+            1, 16/9, 1, 1100 );    
     
-    SVO.light = null;
+    // A spot light
+    SVO.light = new THREE.SpotLight(0xffffbb);
+    SVO.light.position.set( 200, 400, 400 ); // The position is chosen to be compatible
+    // with the sun in the panorama we use
+    SVO.light.castShadow = true; // only spotligths cast shadows in ThreeJS (I think...)
+        
     
-    SVO.renderer = null;
+    SVO.renderer = new THREE.WebGLRenderer({antialias: true});
+    SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
+    SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
     
-    SVO.container = SVO.THREEJS_DIV; // A div for the three js renderer
+    SVO.container = $('#' + SVO.THREEJS_DIV_ID).get(0);
+    SVO.container.appendChild(SVO.renderer.domElement);
             
     SVO.dragView = {draggingView: false, mouseDownX: 0, mouseDownY: 0};
-                    
-    SVO.streetViewPano = null;  // A div for streetview    
+                        
+    SVO.streetViewPano = new google.maps.StreetViewPanorama($('#'+SVO.STREETVIEW_DIV_ID).get(0),
+                             {disableDefaultUI: true});
     SVO.currentStreetViewZoom = 1;           
                     
     SVO.showing = {streetView: true, objects3D: false};
@@ -47,35 +57,45 @@ function StreetViewOverlay() {
         $(document).ready(function(){
             SVO.showing= $.extend(SVO.showing, showing);
             SVO.mesh = mesh;
+            // A ground plane (so I can cast shadows)
+            var planeGeo = new THREE.PlaneGeometry(20, 20);
+            var planeMat = new THREE.MeshLambertMaterial({color: 0xAAAAAA, transparent: true, opacity: 0.5});
+            var plane = new THREE.Mesh(planeGeo, planeMat);
+            plane.rotation.x = -Math.PI/2;
+            plane.position.y = 0;
+            plane.receiveShadow = true;
+            SVO.mesh.add(plane);
+                    
+            if (SVO.showing.objects3D) {
+                SVO.scene.add(SVO.mesh);
+            }
+       
+            SVO.scene.add(SVO.light);
+            SVO.attachEventHandlers(); 
             // Obtain real panorama position (the closest one in Street View to
             // lat,lon and call init to start   
             SVO.realPanoPos(lat,lon, SVO.init); 
         });
     };
   
-    SVO.init = function(latLng) {
+    SVO.init = function(lat, lon) {
         var i;
+
+        var panoPos = latLon2ThreeMeters(lat, lon);
         
         SVO.currentPanorama = {};
-
-        var panoPos = latLon2ThreeMeters(latLng.lat(),latLng.lng());
-                
         SVO.currentPanorama.position = new THREE.Vector3(panoPos.x, panoPos.y, panoPos.z); 
-        SVO.currentPanorama.position.y += 4;
-    
-        
+        SVO.currentPanorama.position.y += SVO.PANO_HEIGHT;
         SVO.currentPanorama.heading = 0;           
         SVO.currentPanorama.pitch = 0;         
-        SVO.container = $('#' + SVO.THREEJS_DIV_ID).get(0);
-        
+                
         if (SVO.showing.streetView) {
             SVO.cameraParams.focalLength = SVO.streetViewFocalLenght();
-            SVO.initStreetView(latLng.lat(),latLng.lng());
+            SVO.initStreetView(lat, lon);
         }              
         
-        SVO.camera = new THREE.PerspectiveCamera( 
-            1, // ANYTHING, WE ARE SETTING FOCAL LENGTH IN THE NEXT INSTRUCCION AND THAT OVERRIDES THIS            
-            window.innerWidth / window.innerHeight, 1, 1100 );
+        
+        SVO.camera.aspect = window.innerWidth / window.innerHeight;
         SVO.camera.setLens(SVO.cameraParams.focalLength); 
                               
         SVO.camera.position = SVO.currentPanorama.position;
@@ -89,48 +109,14 @@ function StreetViewOverlay() {
         SVO.camera.rotation.x = SVO.currentPanorama.pitch * SVO.DEG2RAD;
         SVO.camera.rotation.y = -SVO.currentPanorama.heading * SVO.DEG2RAD;
         
-        if (SVO.showing.objects3D) {
-            SVO.scene.add(SVO.mesh);
-            // A ground plane (so I can cast shadows)
-            var planeGeo = new THREE.PlaneGeometry(20, 20);
-            var planeMat = new THREE.MeshLambertMaterial({color: 0xAAAAAA, transparent: true, opacity: 0.5});
-            var plane = new THREE.Mesh(planeGeo, planeMat);
-            plane.rotation.x = -Math.PI/2;
-            plane.position.y = 0;
-            plane.receiveShadow = true;
-            SVO.scene.add(plane);
-        } 
-        
-        // Simple hemisphere light
-        //SVO.light = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
-       
-        // A spot light
-        SVO.light = new THREE.SpotLight(0xffffbb);
-        SVO.light.position.set( 200, 400, 400 ); // The position is chosen to be compatible
-        // with the sun in the panorama we use
-        SVO.light.castShadow = true; // only spotligths cast shadows in ThreeJS (I think...)
-        SVO.scene.add(SVO.light);
-        
-        
-        SVO.renderer = new THREE.WebGLRenderer({antialias: true});
         SVO.renderer.setSize(window.innerWidth, window.innerHeight);
-        SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
-        SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
-        
-        SVO.container.appendChild(SVO.renderer.domElement);
-        
-        SVO.attachEventHandlers();
-        
-        SVO.animate();
-        
+        SVO.animate();        
     };
     
     SVO.initStreetView = function(lat, lon) {                    
-        SVO.streetViewPano = new google.maps.StreetViewPanorama($('#'+SVO.STREETVIEW_DIV_ID).get(0),
-                             {disableDefaultUI: true});
-                             
         var panoPos = new google.maps.LatLng(lat,lon);                
-        var myPOV = {heading:SVO.currentPanorama.heading, pitch:SVO.currentPanorama.pitch, zoom:1};        
+        var myPOV = {heading:SVO.currentPanorama.heading, 
+                     pitch:SVO.currentPanorama.pitch, zoom:1};        
         SVO.streetViewPano.setPosition(panoPos);
         SVO.streetViewPano.setPov(myPOV);
     };
@@ -147,8 +133,8 @@ function StreetViewOverlay() {
 
         function processSVData(data, status) {
            if (status === google.maps.StreetViewStatus.OK) {
-               callBackFun(data.location.latLng);               
-               //data.location.latLng.lat(), data.location.latLng.lng());
+               callBackFun(data.location.latLng.lat(),
+                           data.location.latLng.lng());               
            } else {
                throw new Error("Panorama not found");     
            }          
@@ -269,13 +255,18 @@ function StreetViewOverlay() {
         };
         
         function onKeyUp(event) {
+            var panoramaPos = [[41.684196,-0.889992],[41.685296,-0.888992],
+                               [41.684196,-0.887992],[41.684196,-0.888992]];
+            var randomPanorama = Math.floor(Math.random()*panoramaPos.length);
             switch (event.which) {
                 case 13: // return
                 case 32: // space         
                     event.preventDefault();
                     event.stopPropagation();
-                    // NECESITO UNA FUNCIÓN RELOAD QUE ME PERMITA CAMBIAR SOLO EL CENTRO DEL PANORAMA
-                    SVO.load({streetView: true, objects3D: true}, SVO.mesh, 41.684196,-0.888992);                                      
+                    // change to a random street view panorama from among
+                    // those in panoramaPos
+                    SVO.realPanoPos(panoramaPos[randomPanorama][0],
+                                    panoramaPos[randomPanorama][1], SVO.init);                          
                 default:
                     // Nothing. I have found it important not to interfere at all 
                     // with keys I do not use.
@@ -290,8 +281,7 @@ function StreetViewOverlay() {
         $(document).on("keyup", onKeyUp);
         
     };
-    
- 
+
     SVO.animate = function() {
         requestAnimationFrame(SVO.animate);
         SVO.render();
