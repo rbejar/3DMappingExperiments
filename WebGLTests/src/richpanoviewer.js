@@ -15,8 +15,8 @@ function RichPanoViewer() {
     RPV.STREETVIEW_FOCAL_LENGTH_MULTIPLIER = 16; // Discovered experimentally
     RPV.STREETVIEW_DIV_ID = 'streetviewpano';
     RPV.THREEJS_DIV_ID = 'container';
-    RPV.DEG2GRAD = Math.PI / 180;
-    RPV.GRAD2DEG = 180 / Math.PI;
+    RPV.DEG2RAD = Math.PI / 180;
+    RPV.RAD2DEG = 180 / Math.PI;
     
     RPV.richPanoScenes = new Array();
     RPV.currentPanoScene = null;
@@ -46,13 +46,13 @@ function RichPanoViewer() {
                     
     RPV.showing = {panorama: true, modelImage: false, streetView: false, objects3D: false};
     
-    RPV.load = function(showing) {
+    RPV.load = function(showing, initialPano) {
         $(document).ready(function(){
-            RPV.init(showing);
+            RPV.init(showing, initialPos);
         });
     };
   
-    RPV.init = function(showing) {
+    RPV.init = function(showing, initialPano) {
         var i;
         
         RPV.showing= $.extend(RPV.showing, showing);  
@@ -107,8 +107,8 @@ function RichPanoViewer() {
         //  la rotación en X no cambia (sigo "con los pies en el suelo") así que luego
         // puedo rotar en X lo que sea y listo.
         RPV.camera.rotation.order = 'YXZ';
-        RPV.camera.rotation.x = RPV.currentPanorama.pitch * RPV.DEG2GRAD;
-        RPV.camera.rotation.y = -RPV.currentPanorama.heading * RPV.DEG2GRAD;
+        RPV.camera.rotation.x = RPV.currentPanorama.pitch * RPV.DEG2RAD;
+        RPV.camera.rotation.y = -RPV.currentPanorama.heading * RPV.DEG2RAD;
         
         
         // Geometría del panorama (esfera)
@@ -134,7 +134,7 @@ function RichPanoViewer() {
         // offset.x debe ser un valor entre 0.0 y 1.0 (pos o neg), por eso divido ángulo
         // de rotación por 360
         RPV.material = new THREE.MeshBasicMaterial({
-                         map: RPV.texture});
+                         map: RPV.texture, opacity: 0.6, transparent: true});
         RPV.mesh = new THREE.Mesh(RPV.sphere, RPV.material);
         RPV.mesh.position = RPV.currentPanorama.position;         
         if (RPV.showing.panorama) {
@@ -208,7 +208,7 @@ function RichPanoViewer() {
         }
         
         
-        RPV.renderer = new THREE.WebGLRenderer();
+        RPV.renderer = new THREE.WebGLRenderer({antialias: true});
         RPV.renderer.setSize(window.innerWidth, window.innerHeight);
         RPV.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND
         RPV.container.appendChild(RPV.renderer.domElement);
@@ -220,13 +220,36 @@ function RichPanoViewer() {
     };
     
     RPV.initStreetView = function() {                    
-        RPV.streetViewPano = new google.maps.StreetViewPanorama($('#'+RPV.STREETVIEW_DIV_ID).get(0));      
+        RPV.streetViewPano = new google.maps.StreetViewPanorama($('#'+RPV.STREETVIEW_DIV_ID).get(0),
+                             {disableDefaultUI: true});
+                             
         // DE MOMENTO FIJADO PARA PANORAMA 5 DEL ACTUR        
-        var pano5Pos = new google.maps.LatLng(41.66602668,-0.89033847);
-        var myPOV = {heading:RPV.currentPanorama.heading, pitch:RPV.currentPanorama.pitch, zoom:1};
-        
+        var pano5Pos = new google.maps.LatLng(41.66602668,-0.89033847);                
+        var myPOV = {heading:RPV.currentPanorama.heading, pitch:RPV.currentPanorama.pitch, zoom:1};        
         RPV.streetViewPano.setPosition(pano5Pos);
-        RPV.streetViewPano.setPov(myPOV);    
+        RPV.streetViewPano.setPov(myPOV);
+        //console.log("NOT REAL street view pos: " + RPV.streetViewPano.getPosition().lat() +","+
+        //                                       RPV.streetViewPano.getPosition().lng());    
+
+        function processSVData(data, status) {
+           if (status == google.maps.StreetViewStatus.OK) {
+               //console.log("REAL street view pos: " + data.location.latLng.lat() +","+
+               //                                data.location.latLng.lng());
+               // AQUÍ HAY QUE ACTUALIZAR LA POSICIÓN DE LA CÁMARA A
+               // LA QUE NOS DEVUELVE data.location.latLng
+               // PRIMERO HABRÁ QUE TRADUCIRLA AL SISTEMA DE COORDENADAS QUE
+               // USEN LOS DATOS 3D QUE SUPERPONEMOS    
+           }          
+        }
+
+        var sv = new google.maps.StreetViewService();
+        // With a radius of 50 or less, this call returns information
+        // about the closest streetview panorama to the given position.
+        // In the callback function processSVData, the data
+        // parameter can give us the TRUE position of the panorama.
+        // This is necessary because the StreetViewPanorama object position
+        // is the one we give to it, no the TRUE position of that panorama.
+        sv.getPanoramaByLocation(pano5Pos, 50, processSVData);                                  
     };
     
     RPV.updateStreetView = function() {                    
@@ -251,11 +274,11 @@ function RichPanoViewer() {
     };
     
     RPV.currentHeading = function() {
-      return -(RPV.camera.rotation.y * RPV.GRAD2DEG);    
+      return -(RPV.camera.rotation.y * RPV.RAD2DEG);    
     };
     
     RPV.currentPitch = function() {
-      return RPV.camera.rotation.x * RPV.GRAD2DEG;    
+      return RPV.camera.rotation.x * RPV.RAD2DEG;    
     };
     
     
@@ -324,15 +347,15 @@ function RichPanoViewer() {
             
             var aspect = window.innerWidth / window.innerHeight;
             // horizontal FOV. Formula from <https://github.com/mrdoob/three.js/issues/1239>            
-            var hFOV = 2 * Math.atan( Math.tan( (RPV.camera.fov * RPV.DEG2GRAD) / 2 ) * aspect );
+            var hFOV = 2 * Math.atan( Math.tan( (RPV.camera.fov * RPV.DEG2RAD) / 2 ) * aspect );
             
             if (RPV.dragView.draggingView) {
                 horizontalMovement = RPV.dragView.mouseDownX  - event.clientX;
                 verticalMovement  = RPV.dragView.mouseDownY  - event.clientY;
                 
-                // El /6 es a ojo, no termino de ver por qué hace falta si los otros parámetros son correctos...                
-                RPV.camera.rotation.y = (RPV.camera.rotation.y - ((horizontalMovement/6) * hFOV / window.innerWidth)) % (2 * Math.PI);                
-                RPV.camera.rotation.x = RPV.camera.rotation.x + ((verticalMovement/6) *  (RPV.camera.fov * RPV.DEG2GRAD) / window.innerHeight);
+                // El /N es a ojo, no termino de ver por qué hace falta si los otros parámetros son correctos...                
+                RPV.camera.rotation.y = (RPV.camera.rotation.y - ((horizontalMovement/4) * hFOV / window.innerWidth)) % (2 * Math.PI);                
+                RPV.camera.rotation.x = RPV.camera.rotation.x + ((verticalMovement/4) *  (RPV.camera.fov * RPV.DEG2RAD) / window.innerHeight);
                 RPV.camera.rotation.x = Math.max(-Math.PI/2, Math.min( Math.PI/2, RPV.camera.rotation.x));                
                 
                 console.log("rotation.y "+ RPV.camera.rotation.y);
