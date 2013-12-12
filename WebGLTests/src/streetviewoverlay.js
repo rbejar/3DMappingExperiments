@@ -23,15 +23,26 @@
 function StreetViewOverlay() {
     var SVO = {};    
     
-    SVO.PANO_HEIGHT = 3; // I need this to see the ground 3d data 
-    // on the ground. Still not sure about how to calculate it, for now it is
-    // trial and error
+    function streetViewPOVChangeListener() {    
+        SVO.camera.rotation.x = SVO.streetViewPano.getPov().pitch * SVO.DEG2RAD;
+        SVO.camera.rotation.y = - SVO.streetViewPano.getPov().heading * SVO.DEG2RAD;
+    }
+    
+    // Fixed set of panoramas to choose
+    var panoramaPos = [[41.684196,-0.888992],[41.685296,-0.888992],
+                       [41.684196,-0.887992],[41.684196,-0.889992]];
+    var currShownPano = 0;
+    
+    SVO.PANO_HEIGHT = 3; // For instance...
 
     SVO.DEFAULT_FOCAL_LENGTH = 25; // Will be using the default 35 mm for frame size
     SVO.STREETVIEW_FOCAL_LENGTH_MULTIPLIER = 15; // Discovered experimentally. Imprecise but
     // a reasonable approximation I think
-    SVO.STREETVIEW_ZOOM_CONSTANT = 50; // Discovered experimentally. Imprecise. Must be 
-    // greater than 1 and smaller than 2
+    // 12 gives a horizontal FOV of 1.57 rads (aprox 90 degrees). With that value,
+    // vertically the objects do not fit very well.. ??
+    // Besides this, the 3d objects positioning is different in Firefox and Chromium
+    // (now more precise in Firefox...) ?? 
+    SVO.STREETVIEW_ZOOM_CONSTANT = 50; // Discovered experimentally. Imprecise. 
     SVO.STREETVIEW_DIV_ID = 'streetviewpano';
     SVO.THREEJS_DIV_ID = 'container';
     SVO.DEG2RAD = Math.PI / 180;
@@ -44,45 +55,72 @@ function StreetViewOverlay() {
     
     SVO.cameraParams = {focalLength: SVO.DEFAULT_FOCAL_LENGTH};
     SVO.camera = new THREE.PerspectiveCamera( 
-            1, 16/9, 1, 1100 );    
+            1, 16/9, 1, 1100 ); // When I initalize the camera, I will change fov and aspect
     
     // A spot light
     SVO.light = new THREE.SpotLight(0xffffbb);
-    SVO.light.position.set( 200, 400, 400 ); // The position is chosen to be compatible
-    // with the sun in the panorama we use
+    SVO.light.position.set( 200, 400, 400 ); // The position is chosen to be roughly
+    // "compatible" with the sun in the panoramas we use
     SVO.light.castShadow = true; // only spotligths cast shadows in ThreeJS (I think...)
         
+    SVO.renderer = null;
     
-    SVO.renderer = new THREE.WebGLRenderer({antialias: true});
-    SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
-    SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
-    
-    SVO.container = $('#' + SVO.THREEJS_DIV_ID).get(0);
-    SVO.container.appendChild(SVO.renderer.domElement);
+    SVO.$container = null;
+    SVO.container = null;    
             
     SVO.dragView = {draggingView: false, mouseDownX: 0, mouseDownY: 0};
-                        
-    SVO.streetViewPano = new google.maps.StreetViewPanorama($('#'+SVO.STREETVIEW_DIV_ID).get(0),
-                             {disableDefaultUI: true});
+            
+    SVO.$streetViewPano = null;
+    SVO.streetViewPano = null;            
+  
     SVO.currentStreetViewZoom = 1;           
                     
     SVO.showing = {streetView: true, objects3D: false};
     
-    SVO.mesh = false;
+    SVO.mesh = null;
     
     SVO.load = function(showing, mesh, lat, lon) {
         $(document).ready(function(){
             SVO.showing= $.extend(SVO.showing, showing);
             SVO.mesh = mesh;
-            // A ground plane (so I can cast shadows)
-            var planeGeo = new THREE.PlaneGeometry(20, 20);
-            var planeMat = new THREE.MeshLambertMaterial({color: 0xAAAAAA, transparent: true, opacity: 0.5});
-            var plane = new THREE.Mesh(planeGeo, planeMat);
-            plane.rotation.x = -Math.PI/2;
-            plane.position.y = 0;
-            plane.receiveShadow = true;
-            SVO.mesh.add(plane);
-                    
+            
+                      
+            if (SVO.showing.webGL) {                
+                if (Detector.webgl) {
+                    SVO.renderer = new THREE.WebGLRenderer();
+                } else {                    
+                    SVO.renderer = new THREE.CanvasRenderer();
+                    $("#help").append('<p>WebGL not supported. A slower and less pretty version is shown.</p>');
+                    $("#help").append('<p><a target="_blank" href="http://www.khronos.org/webgl/wiki_1_15/index.php/Getting_a_WebGL_Implementation">Click here to find out how to activate WebGL support</a></p>');
+                }                   
+            } else {
+                SVO.renderer = new THREE.CanvasRenderer();
+                $("#help").append('<p>WebGL not even tried. A slower and less pretty version is shown.</p>');
+                $("#help").append('<p><a target="_blank" href="http://www.khronos.org/webgl/wiki_1_15/index.php/Getting_a_WebGL_Implementation">Click here to find out how to activate WebGL support</a></p>');
+            }
+            SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
+            SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
+            
+            SVO.$container = $('#' + SVO.THREEJS_DIV_ID);
+            SVO.container = SVO.$container.get(0);
+            SVO.container.appendChild(SVO.renderer.domElement);
+            
+            SVO.$streetViewPano = $('#'+SVO.STREETVIEW_DIV_ID);
+            SVO.streetViewPano = new google.maps.StreetViewPanorama($('#'+SVO.STREETVIEW_DIV_ID).get(0),
+                             {disableDefaultUI: true, scrollwheel: false, clickToGo: false});
+            
+            // In order to show and make responsive the links that Google adds to every
+            // Street View panorama (link to Google maps, terms of use etc.) I have
+            // made the threejs container smaller than the streetview panorama, so the 
+            // bottom of the panorama is not covered. This works, but creates a problem: if
+            // the user drags the panorama from the bottom of the window, the threejs
+            // container does not receive the event, so the panorama changes but the 3D model
+            // does not. I have to listen to the pano_changed event of the street view
+            // panorama to make up for this:            
+            google.maps.event.addListener(SVO.streetViewPano, 'pov_changed', streetViewPOVChangeListener);
+  
+
+                                
             if (SVO.showing.objects3D) {
                 SVO.scene.add(SVO.mesh);
             }
@@ -111,22 +149,20 @@ function StreetViewOverlay() {
             SVO.initStreetView(lat, lon);
         }              
         
-        
-        SVO.camera.aspect = window.innerWidth / window.innerHeight;
+        SVO.camera.aspect = SVO.$container.width() / SVO.$container.height();
         SVO.camera.setLens(SVO.cameraParams.focalLength); 
                               
         SVO.camera.position = SVO.currentPanorama.position;
                        
-        // Sin esto, las rotaciones no me sirven. Son relativas a la posición de la cámara
-        // así que si rota primero en X (por defecto es XYZ), el eje Y deja de apuntar al 
-        // "techo" y la rotación en ese eje ya no me sirve. Si roto primero en el eje Y,
-        //  la rotación en X no cambia (sigo "con los pies en el suelo") así que luego
-        // puedo rotar en X lo que sea y listo.
+        // Changing rotation order is necessary. As rotation is relative to the position
+        // of the camera, if it rotates first in the X axis (by default), the Y axis
+        // will not be "up" anymore. If I rotate first in the Y axis, rotation in X is
+        // not affected so I can rotate in X later.  
         SVO.camera.rotation.order = 'YXZ';
         SVO.camera.rotation.x = SVO.currentPanorama.pitch * SVO.DEG2RAD;
         SVO.camera.rotation.y = -SVO.currentPanorama.heading * SVO.DEG2RAD;
-        
-        SVO.renderer.setSize(window.innerWidth, window.innerHeight);
+                
+        SVO.renderer.setSize(SVO.$container.width(), SVO.$container.height());
         SVO.animate();        
     };
     
@@ -138,11 +174,17 @@ function StreetViewOverlay() {
         SVO.streetViewPano.setPov(myPOV);
     };
     
-    SVO.updateStreetView = function() {                    
+    SVO.updateStreetView = function() {
+        // If I am calling this function, I do not need the streetViewPano
+        // to generate events when pov changes
+        google.maps.event.clearListeners(SVO.streetViewPano, 'pov_changed');   
+                            
         var myPOV = {heading: SVO.currentHeading(), 
-                     pitch:SVO.currentPitch(), zoom:SVO.currentStreetViewZoom};
-                     
+                     pitch:SVO.currentPitch(), zoom:SVO.currentStreetViewZoom};                   
         SVO.streetViewPano.setPov(myPOV);
+          
+        // After updating pov, it can generate pov change events again
+        google.maps.event.addListener(SVO.streetViewPano, 'pov_changed', streetViewPOVChangeListener);
     };      
     
     SVO.realPanoPos = function(lat, lon, callBackFun) {                                                                
@@ -167,13 +209,13 @@ function StreetViewOverlay() {
     };
     
     // Returns a focal length "compatible" with a Google Street View background
-    // given the current size of the window. (For Zoom level 1 for Street View)
+    // given the current size of the renderer and the given zoomLevel
     SVO.streetViewFocalLenght = function(zoomLevel) {
         if (!zoomLevel || zoomLevel < 1) {
             zoomLevel = 1;
         }
-        if (window.innerWidth > 0) {            
-            return (SVO.STREETVIEW_FOCAL_LENGTH_MULTIPLIER * window.innerWidth / window.innerHeight) 
+        if (SVO.$container.width() > 0) {            
+            return (SVO.STREETVIEW_FOCAL_LENGTH_MULTIPLIER * SVO.$container.width() / SVO.$container.height()) 
                    + SVO.STREETVIEW_ZOOM_CONSTANT * (zoomLevel - 1);
             
         } else {
@@ -194,15 +236,11 @@ function StreetViewOverlay() {
     
     
     SVO.attachEventHandlers = function() {    
-        // click event does not get right click in Chromium; mousedown gets left
-        // and right clicks properly in both Firefox and Chromium
-      
         function onMouseWheel(event) {
             event.preventDefault();           
             event.stopPropagation();
 
-                
-            //SVO.cameraParams.focalLength += event.deltaY;
+            // Zooming could be more "progressive", but for now this is enough
             if (event.deltaY > 0) {            
                 SVO.currentStreetViewZoom += 1;
                 SVO.cameraParams.focalLength = SVO.streetViewFocalLenght(SVO.currentStreetViewZoom);
@@ -244,17 +282,21 @@ function StreetViewOverlay() {
             
             var horizontalMovement, verticalMovement;     
             
-            var aspect = window.innerWidth / window.innerHeight;
+            var aspect = SVO.$container.width() / SVO.$container.height();
             // horizontal FOV. Formula from <https://github.com/mrdoob/three.js/issues/1239>            
-            var hFOV = 2 * Math.atan( Math.tan( (SVO.camera.fov * SVO.DEG2RAD) / 2 ) * aspect );
+            var hFOV = 2 * Math.atan( Math.tan( (SVO.camera.fov * SVO.DEG2RAD) / 2 ) * aspect );            
+            //console.log("focal lenght zoom 1="+SVO.STREETVIEW_FOCAL_LENGTH_MULTIPLIER * SVO.$container.width() / SVO.$container.height());
+            //console.log("SVO.camera.fov="+SVO.camera.fov);
+            //console.log("hFOV="+hFOV);
             
             if (SVO.dragView.draggingView) {
                 horizontalMovement = SVO.dragView.mouseDownX  - event.clientX;
                 verticalMovement  = SVO.dragView.mouseDownY  - event.clientY;
                 
-                // El /N es a ojo, no termino de ver por qué hace falta si los otros parámetros son correctos...                
-                SVO.camera.rotation.y = (SVO.camera.rotation.y - ((horizontalMovement/4) * hFOV / window.innerWidth)) % (2 * Math.PI);                
-                SVO.camera.rotation.x = SVO.camera.rotation.x + ((verticalMovement/4) *  (SVO.camera.fov * SVO.DEG2RAD) / window.innerHeight);
+                // The /N is to adjust the "responsiveness" of the panning. 
+                // This needs a rewriting but for now it works...                
+                SVO.camera.rotation.y = (SVO.camera.rotation.y - ((horizontalMovement/4) * hFOV / SVO.$container.width())) % (2 * Math.PI);                
+                SVO.camera.rotation.x = SVO.camera.rotation.x + ((verticalMovement/4) *  (SVO.camera.fov * SVO.DEG2RAD) / SVO.$container.height());
                 SVO.camera.rotation.x = Math.max(-Math.PI/2, Math.min( Math.PI/2, SVO.camera.rotation.x));                
                 
                 SVO.updateStreetView();
@@ -262,38 +304,38 @@ function StreetViewOverlay() {
         };
         
         function onWindowResize() {
-            SVO.camera.aspect = window.innerWidth / window.innerHeight;
+            SVO.camera.aspect = SVO.$container.width() / SVO.$container.height();            
+            
             if (SVO.showing.streetView) {
               SVO.cameraParams.focalLength = SVO.streetViewFocalLenght();
               SVO.camera.setLens(SVO.cameraParams.focalLength);    
             }                                    
-            SVO.camera.updateProjectionMatrix();
-            SVO.renderer.setSize( window.innerWidth, window.innerHeight );
+            SVO.camera.updateProjectionMatrix();            
+            
+            SVO.renderer.setSize(SVO.$container.width(), SVO.$container.height());
         };
         
-        function onKeyUp(event) {
-            var panoramaPos = [[41.684196,-0.889992],[41.685296,-0.888992],
-                               [41.684196,-0.887992],[41.684196,-0.888992]];
-            var randomPanorama = Math.floor(Math.random()*panoramaPos.length);
+        function onKeyUp(event) {            
+            currShownPano = (currShownPano + 1) % panoramaPos.length; 
+            
             switch (event.which) {
                 case 13: // return
                 case 32: // space         
                     event.preventDefault();
                     event.stopPropagation();
-                    // change to a random street view panorama from among
-                    // those in panoramaPos
-                    SVO.realPanoPos(panoramaPos[randomPanorama][0],
-                                    panoramaPos[randomPanorama][1], SVO.init);                          
+                    // change to the next panorama in panoramaPos
+                    SVO.realPanoPos(panoramaPos[currShownPano][0],
+                                    panoramaPos[currShownPano][1], SVO.init);                          
                 default:
-                    // Nothing. I have found it important not to interfere at all 
+                    // Nothing. It is important not to interfere at all 
                     // with keys I do not use.
             }
         };
       
-        $(document).mousewheel(onMouseWheel);
-        $(document).mousedown(onMouseDown);
-        $(document).mouseup(onMouseUp);
-        $(document).mousemove(onMouseMove);
+        SVO.$container.mousewheel(onMouseWheel);
+        SVO.$container.mousedown(onMouseDown);
+        SVO.$container.mouseup(onMouseUp);
+        SVO.$container.mousemove(onMouseMove);
         $(window).resize(onWindowResize);
         $(document).on("keyup", onKeyUp);
         
