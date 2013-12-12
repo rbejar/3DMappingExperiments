@@ -63,10 +63,7 @@ function StreetViewOverlay() {
     // "compatible" with the sun in the panoramas we use
     SVO.light.castShadow = true; // only spotligths cast shadows in ThreeJS (I think...)
         
-    
-    SVO.renderer = new THREE.WebGLRenderer({antialias: true});
-    SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
-    SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
+    SVO.renderer = null;
     
     SVO.$container = null;
     SVO.container = null;    
@@ -87,6 +84,15 @@ function StreetViewOverlay() {
             SVO.showing= $.extend(SVO.showing, showing);
             SVO.mesh = mesh;
             
+                      
+            if (SVO.showing.webGL) {
+                SVO.renderer = new THREE.WebGLRenderer({antialias: true});
+            } else {
+                SVO.renderer = new THREE.CanvasRenderer();
+            }
+            SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
+            SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
+            
             SVO.$container = $('#' + SVO.THREEJS_DIV_ID);
             SVO.container = SVO.$container.get(0);
             SVO.container.appendChild(SVO.renderer.domElement);
@@ -104,6 +110,8 @@ function StreetViewOverlay() {
             // does not. I have to listen to the pano_changed event of the street view
             // panorama to make up for this:            
             google.maps.event.addListener(SVO.streetViewPano, 'pov_changed', streetViewPOVChangeListener);
+  
+
                                 
             if (SVO.showing.objects3D) {
                 SVO.scene.add(SVO.mesh);
