@@ -85,10 +85,18 @@ function StreetViewOverlay() {
             SVO.mesh = mesh;
             
                       
-            if (SVO.showing.webGL) {
-                SVO.renderer = new THREE.WebGLRenderer({antialias: true});
+            if (SVO.showing.webGL) {                
+                if (Detector.webgl) {
+                    SVO.renderer = new THREE.WebGLRenderer();
+                } else {                    
+                    SVO.renderer = new THREE.CanvasRenderer();
+                    $("#help").append('<p>WebGL not supported. A slower and less pretty version is shown.</p>');
+                    $("#help").append('<p><a target="_blank" href="http://www.khronos.org/webgl/wiki_1_15/index.php/Getting_a_WebGL_Implementation">Click here to find out how to activate WebGL support</a></p>');
+                }                   
             } else {
                 SVO.renderer = new THREE.CanvasRenderer();
+                $("#help").append('<p>WebGL not even tried. A slower and less pretty version is shown.</p>');
+                $("#help").append('<p><a target="_blank" href="http://www.khronos.org/webgl/wiki_1_15/index.php/Getting_a_WebGL_Implementation">Click here to find out how to activate WebGL support</a></p>');
             }
             SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
             SVO.renderer.shadowMapEnabled = true; // For shadows to be shown

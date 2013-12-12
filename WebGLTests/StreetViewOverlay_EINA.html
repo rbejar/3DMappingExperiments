@@ -32,7 +32,7 @@
 			}
 			p {
 			    font-family:sans-serif;
-			    font-size:10px;
+			    font-size:11px;
 			    font-weight:bold;
 			    color:#111111;
 			}
@@ -53,7 +53,9 @@
         <div id="container" style="position: absolute; top:0; bottom:20px; left: 0; right: 0; z-index: 5000;">
         </div>
         <div id="help" style="position: absolute; top:0; width:100; right:4px; z-index: 100000">
-        <p>This works at least in Firefox and Chromium for Linux.</p>
+        <p>Works at least in the latest version of Firefox in Windows, Linux and MacOS X</p>
+        <p>and in the latest versions of Chrome/ium in Linux and Windows.</p>
+        <p>WebGL support is not required, but desirable.</p>
         <p>Rotate with the mouse, Zoom with the wheel.</p>
         <p>Spacebar to change panorama (among a fixed set of them).</p>
         <p><a style="color:#B04F00;" href="http://www.rubenbejar.com" target="_blank"><b>rubenbejar</b>.com</a></p>
@@ -67,6 +69,7 @@
         <script src="lib/jquery-2.0.3.js"></script>
         <script src="lib/jquery.mousewheel.js"></script>
 		<script src="lib/three.min.js"></script>
+		<script src="lib/Detector.js"></script>
 		<script src="src/streetviewoverlay.js"></script>
 
 		<script>
