@@ -29,8 +29,8 @@ function StreetViewOverlay() {
     }
     
     // Fixed set of panoramas to choose
-    var panoramaPos = [[41.684196,-0.889992],[41.685296,-0.888992],
-                       [41.684196,-0.887992],[41.684196,-0.888992]];
+    var panoramaPos = [[41.684196,-0.888992],[41.685296,-0.888992],
+                       [41.684196,-0.887992],[41.684196,-0.889992]];
     var currShownPano = 0;
     
     SVO.PANO_HEIGHT = 3; // For instance...
