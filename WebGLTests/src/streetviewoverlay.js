@@ -40,7 +40,7 @@ function StreetViewOverlay() {
     // a reasonable approximation I think
     // 12 gives a horizontal FOV of 1.57 rads (aprox 90 degrees). With that value,
     // vertically the objects do not fit very well.. ??
-    // Besides this, the 3d objects positioning is different in Firefox and Chromium
+    // Besides this, the 3d objects positioning is sligthly different in Firefox and Chromium
     // (now more precise in Firefox...) ?? 
     SVO.STREETVIEW_ZOOM_CONSTANT = 50; // Discovered experimentally. Imprecise. 
     SVO.STREETVIEW_DIV_ID = 'streetviewpano';
