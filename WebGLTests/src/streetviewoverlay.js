@@ -1,6 +1,6 @@
 /**
     streetviewoverlay.js - 3D Data on Google Street View Visualization
-    Copyright (C) 2013 Rubén Béjar {http://www.rubenbejar.com/}
+    Copyright (C) 2018 Rubén Béjar {http://www.rubenbejar.com/}
     
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -42,7 +42,7 @@ function StreetViewOverlay() {
     // vertically the objects do not fit very well.. ??
     // Besides this, the 3d objects positioning is sligthly different in Firefox and Chromium
     // (now more precise in Firefox...) ?? 
-    SVO.STREETVIEW_ZOOM_CONSTANT = 50; // Discovered experimentally. Imprecise. 
+    SVO.STREETVIEW_ZOOM_CONSTANT = 50; // Discovered experimentally. Imprecise.
     SVO.STREETVIEW_DIV_ID = 'streetviewpano';
     SVO.THREEJS_DIV_ID = 'container';
     SVO.DEG2RAD = Math.PI / 180;
@@ -79,15 +79,16 @@ function StreetViewOverlay() {
     
     SVO.mesh = null;
     
-    SVO.load = function(showing, mesh, lat, lon) {
+    SVO.load = function(showing, mesh, lat, lon, worldOrigin) {
         $(document).ready(function(){
             SVO.showing= $.extend(SVO.showing, showing);
             SVO.mesh = mesh;
+	    SVO.worldOrigin = worldOrigin;
             
                       
             if (SVO.showing.webGL) {                
                 if (Detector.webgl) {
-                    SVO.renderer = new THREE.WebGLRenderer();
+                    SVO.renderer = new THREE.WebGLRenderer({alpha: true});
                 } else {                    
                     SVO.renderer = new THREE.CanvasRenderer();
                     $("#help").append('<p>WebGL not supported. A slower and less pretty version is shown.</p>');
@@ -99,7 +100,7 @@ function StreetViewOverlay() {
                 $("#help").append('<p><a target="_blank" href="http://www.khronos.org/webgl/wiki_1_15/index.php/Getting_a_WebGL_Implementation">Click here to find out how to activate WebGL support</a></p>');
             }
             SVO.renderer.setClearColor(0x000000, 0); // TRANSPARENT BACKGROUND        
-            SVO.renderer.shadowMapEnabled = true; // For shadows to be shown
+            SVO.renderer.shadowMap.enabled = true; // For shadows to be shown
             
             SVO.$container = $('#' + SVO.THREEJS_DIV_ID);
             SVO.container = SVO.$container.get(0);
@@ -136,13 +137,13 @@ function StreetViewOverlay() {
     SVO.init = function(lat, lon) {
         var i;
 
-        var panoPos = latLon2ThreeMeters(lat, lon);
+        var panoPos = latLon2ThreeMeters(lat, lon, worldOrigin);	
         
         SVO.currentPanorama = {};
         SVO.currentPanorama.position = new THREE.Vector3(panoPos.x, panoPos.y, panoPos.z); 
         SVO.currentPanorama.position.y += SVO.PANO_HEIGHT;
         SVO.currentPanorama.heading = 0;           
-        SVO.currentPanorama.pitch = 0;         
+        SVO.currentPanorama.pitch = 0;         	
                 
         if (SVO.showing.streetView) {
             SVO.cameraParams.focalLength = SVO.streetViewFocalLenght();
@@ -150,9 +151,9 @@ function StreetViewOverlay() {
         }              
         
         SVO.camera.aspect = SVO.$container.width() / SVO.$container.height();
-        SVO.camera.setLens(SVO.cameraParams.focalLength); 
+        SVO.camera.setFocalLength(SVO.cameraParams.focalLength); 
                               
-        SVO.camera.position = SVO.currentPanorama.position;
+        SVO.camera.position.set(SVO.currentPanorama.position.x, SVO.currentPanorama.position.y, SVO.currentPanorama.position.z);	
                        
         // Changing rotation order is necessary. As rotation is relative to the position
         // of the camera, if it rotates first in the X axis (by default), the Y axis
@@ -252,7 +253,7 @@ function StreetViewOverlay() {
             }            
             
             
-            SVO.camera.setLens(SVO.cameraParams.focalLength);
+            SVO.camera.setFocalLength(SVO.cameraParams.focalLength);
             SVO.camera.updateProjectionMatrix();
             
             SVO.updateStreetView();
@@ -284,10 +285,7 @@ function StreetViewOverlay() {
             
             var aspect = SVO.$container.width() / SVO.$container.height();
             // horizontal FOV. Formula from <https://github.com/mrdoob/three.js/issues/1239>            
-            var hFOV = 2 * Math.atan( Math.tan( (SVO.camera.fov * SVO.DEG2RAD) / 2 ) * aspect );            
-            //console.log("focal lenght zoom 1="+SVO.STREETVIEW_FOCAL_LENGTH_MULTIPLIER * SVO.$container.width() / SVO.$container.height());
-            //console.log("SVO.camera.fov="+SVO.camera.fov);
-            //console.log("hFOV="+hFOV);
+            var hFOV = 2 * Math.atan( Math.tan( (SVO.camera.fov * SVO.DEG2RAD) / 2 ) * aspect );                        
             
             if (SVO.dragView.draggingView) {
                 horizontalMovement = SVO.dragView.mouseDownX  - event.clientX;
@@ -308,7 +306,7 @@ function StreetViewOverlay() {
             
             if (SVO.showing.streetView) {
               SVO.cameraParams.focalLength = SVO.streetViewFocalLenght();
-              SVO.camera.setLens(SVO.cameraParams.focalLength);    
+              SVO.camera.setFocalLength(SVO.cameraParams.focalLength);    
             }                                    
             SVO.camera.updateProjectionMatrix();            
             
